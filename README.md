@@ -1,6 +1,8 @@
-# Proyecto 3 — Mini-Trello: Tablero Kanban colaborativo
+# 04 — Kanban SaaS: tablero colaborativo en tiempo real
 
-> El proyecto "estrella" del portafolio. Demuestra que podés construir un producto SaaS real con multiusuario y real-time. Tiempo estimado: **2 semanas**.
+> GitHub: [tech-marcos-rios/kanban-saas](https://github.com/tech-marcos-rios/kanban-saas)
+
+El proyecto "estrella" del portafolio. Demuestra que podés construir un producto SaaS real con multiusuario y real-time. Tiempo estimado: **2 semanas**. Estado: 📋 planificado.
 
 ## ¿Qué construir?
 
