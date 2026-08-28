@@ -2,7 +2,9 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Kanban.Api.Hubs;
 using Kanban.Application;
+using Kanban.Application.Interfaces;
 using Kanban.Infrastructure;
 using Kanban.Infrastructure.Persistence;
 using Serilog;
@@ -26,12 +28,18 @@ try
     builder.Services.AddApplication();
     builder.Services.AddInfrastructure(builder.Configuration);
 
-    var allowedOrigins = (builder.Configuration["Cors:AllowedOrigins"] ?? "*").Split(',');
+    // SignalR necesita origenes concretos (no "*") para poder habilitar AllowCredentials,
+    // requerido por el negotiate/fallback del hub en conexiones cross-origin.
+    var allowedOrigins = (builder.Configuration["Cors:AllowedOrigins"] ?? "http://localhost:3000").Split(',');
     builder.Services.AddCors(options =>
         options.AddDefaultPolicy(policy =>
             policy.WithOrigins(allowedOrigins)
                   .AllowAnyHeader()
-                  .AllowAnyMethod()));
+                  .AllowAnyMethod()
+                  .AllowCredentials()));
+
+    builder.Services.AddSignalR();
+    builder.Services.AddScoped<IBoardNotifier, SignalRBoardNotifier>();
 
     builder.Services.AddRateLimiter(options =>
     {
@@ -84,6 +92,20 @@ try
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
                 ClockSkew = TimeSpan.Zero
             };
+
+            // El cliente de SignalR (WebSocket) no puede mandar el header Authorization,
+            // así que manda el JWT como query string y lo leemos acá solo para /hubs/*.
+            options.Events = new JwtBearerEvents
+            {
+                OnMessageReceived = context =>
+                {
+                    var accessToken = context.Request.Query["access_token"];
+                    if (!string.IsNullOrEmpty(accessToken) && context.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+                        context.Token = accessToken;
+
+                    return Task.CompletedTask;
+                }
+            };
         });
 
     builder.Services.AddAuthorization();
@@ -107,6 +129,7 @@ try
     app.UseAuthentication();
     app.UseAuthorization();
     app.MapControllers();
+    app.MapHub<BoardHub>("/hubs/board");
     app.MapHealthChecks("/health");
 
     app.Run();

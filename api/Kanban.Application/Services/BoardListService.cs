@@ -12,12 +12,14 @@ public class BoardListService
     private readonly IBoardListRepository _lists;
     private readonly IBoardRepository _boards;
     private readonly IUnitOfWork _uow;
+    private readonly IBoardNotifier _notifier;
 
-    public BoardListService(IBoardListRepository lists, IBoardRepository boards, IUnitOfWork uow)
+    public BoardListService(IBoardListRepository lists, IBoardRepository boards, IUnitOfWork uow, IBoardNotifier notifier)
     {
         _lists = lists;
         _boards = boards;
         _uow = uow;
+        _notifier = notifier;
     }
 
     public async Task<Result<List<BoardListResponse>>> GetForBoardAsync(Guid boardId, Guid userId, CancellationToken ct = default)
@@ -47,7 +49,9 @@ public class BoardListService
         await _lists.AddAsync(list, ct);
         await _uow.SaveChangesAsync(ct);
 
-        return Result.Success(ToResponse(list));
+        var response = ToResponse(list);
+        await _notifier.ListCreatedAsync(boardId, response, ct);
+        return Result.Success(response);
     }
 
     public async Task<Result<BoardListResponse>> RenameAsync(Guid boardId, Guid listId, Guid userId, UpdateBoardListRequest request, CancellationToken ct = default)
@@ -68,7 +72,9 @@ public class BoardListService
         _lists.Update(list);
         await _uow.SaveChangesAsync(ct);
 
-        return Result.Success(ToResponse(list));
+        var response = ToResponse(list);
+        await _notifier.ListUpdatedAsync(boardId, response, ct);
+        return Result.Success(response);
     }
 
     /// <summary>Reordena renumerando todas las listas del tablero (0..n-1) — simple porque un tablero tiene pocas listas.</summary>
@@ -94,7 +100,10 @@ public class BoardListService
         }
 
         await _uow.SaveChangesAsync(ct);
-        return Result.Success(lists.Select(ToResponse).ToList());
+
+        var response = lists.Select(ToResponse).ToList();
+        await _notifier.ListsReorderedAsync(boardId, response, ct);
+        return Result.Success(response);
     }
 
     public async Task<Result> DeleteAsync(Guid boardId, Guid listId, Guid userId, CancellationToken ct = default)
@@ -110,6 +119,7 @@ public class BoardListService
         _lists.Remove(list);
         await _uow.SaveChangesAsync(ct);
 
+        await _notifier.ListDeletedAsync(boardId, listId, ct);
         return Result.Success();
     }
 

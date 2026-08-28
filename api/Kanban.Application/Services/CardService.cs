@@ -13,13 +13,15 @@ public class CardService
     private readonly IBoardListRepository _lists;
     private readonly IBoardRepository _boards;
     private readonly IUnitOfWork _uow;
+    private readonly IBoardNotifier _notifier;
 
-    public CardService(ICardRepository cards, IBoardListRepository lists, IBoardRepository boards, IUnitOfWork uow)
+    public CardService(ICardRepository cards, IBoardListRepository lists, IBoardRepository boards, IUnitOfWork uow, IBoardNotifier notifier)
     {
         _cards = cards;
         _lists = lists;
         _boards = boards;
         _uow = uow;
+        _notifier = notifier;
     }
 
     public async Task<Result<List<CardResponse>>> GetByListAsync(Guid boardId, Guid listId, Guid userId, CancellationToken ct = default)
@@ -73,7 +75,9 @@ public class CardService
         await _uow.SaveChangesAsync(ct);
 
         var saved = await _cards.GetByIdAsync(card.Id, ct);
-        return Result.Success(ToResponse(saved!));
+        var response = ToResponse(saved!);
+        await _notifier.CardCreatedAsync(boardId, response, ct);
+        return Result.Success(response);
     }
 
     public async Task<Result<CardResponse>> UpdateAsync(Guid boardId, Guid cardId, Guid userId, UpdateCardRequest request, CancellationToken ct = default)
@@ -94,7 +98,9 @@ public class CardService
         _cards.Update(card);
         await _uow.SaveChangesAsync(ct);
 
-        return Result.Success(ToResponse(card));
+        var response = ToResponse(card);
+        await _notifier.CardUpdatedAsync(boardId, response, ct);
+        return Result.Success(response);
     }
 
     public async Task<Result<CardResponse>> AssignAsync(Guid boardId, Guid cardId, Guid userId, AssignCardRequest request, CancellationToken ct = default)
@@ -119,7 +125,9 @@ public class CardService
         await _uow.SaveChangesAsync(ct);
 
         var updated = await _cards.GetByIdAsync(cardId, ct);
-        return Result.Success(ToResponse(updated!));
+        var response = ToResponse(updated!);
+        await _notifier.CardUpdatedAsync(boardId, response, ct);
+        return Result.Success(response);
     }
 
     /// <summary>Mueve la tarjeta (misma lista o entre listas) renumerando las columnas afectadas 0..n-1.</summary>
@@ -138,29 +146,36 @@ public class CardService
             return Result.Failure<CardResponse>("Lista no encontrada.", notFound: true);
 
         var sourceListId = card.ListId;
+        List<Card> touched;
 
         if (sourceListId == request.ListId)
         {
             var cards = await _cards.GetByListIdAsync(sourceListId, ct);
             cards.RemoveAll(c => c.Id == cardId);
             cards.Insert(Math.Clamp(request.Position, 0, cards.Count), card);
-            Renumber(cards, sourceListId);
+            touched = Renumber(cards, sourceListId);
         }
         else
         {
             var sourceCards = await _cards.GetByListIdAsync(sourceListId, ct);
             sourceCards.RemoveAll(c => c.Id == cardId);
-            Renumber(sourceCards, sourceListId);
+            var sourceTouched = Renumber(sourceCards, sourceListId);
 
             var targetCards = await _cards.GetByListIdAsync(request.ListId, ct);
             targetCards.Insert(Math.Clamp(request.Position, 0, targetCards.Count), card);
-            Renumber(targetCards, request.ListId);
+            var targetTouched = Renumber(targetCards, request.ListId);
+
+            touched = sourceTouched.Concat(targetTouched).ToList();
         }
 
         await _uow.SaveChangesAsync(ct);
 
-        var updated = await _cards.GetByIdAsync(cardId, ct);
-        return Result.Success(ToResponse(updated!));
+        // Todo lo que cambió de posición se notifica — no solo la tarjeta arrastrada —
+        // para que los demás clientes conectados terminen con el mismo orden exacto.
+        foreach (var c in touched)
+            await _notifier.CardMovedAsync(boardId, ToResponse(c), ct);
+
+        return Result.Success(ToResponse(card));
     }
 
     public async Task<Result> DeleteAsync(Guid boardId, Guid cardId, Guid userId, CancellationToken ct = default)
@@ -173,20 +188,25 @@ public class CardService
         if (card is null || card.List.BoardId != boardId)
             return Result.Failure("Tarjeta no encontrada.", notFound: true);
 
+        var listId = card.ListId;
         _cards.Remove(card);
         await _uow.SaveChangesAsync(ct);
 
+        await _notifier.CardDeletedAsync(boardId, listId, cardId, ct);
         return Result.Success();
     }
 
-    private void Renumber(List<Card> cards, Guid listId)
+    private List<Card> Renumber(List<Card> cards, Guid listId)
     {
+        var touched = new List<Card>();
         for (var i = 0; i < cards.Count; i++)
         {
             if (cards[i].ListId == listId && cards[i].Position == i) continue;
             cards[i].MoveTo(listId, i);
             _cards.Update(cards[i]);
+            touched.Add(cards[i]);
         }
+        return touched;
     }
 
     private async Task<Result> CheckBoardAccessAsync(Guid boardId, Guid userId, bool requireEditor, CancellationToken ct)
