@@ -2,7 +2,7 @@
 
 > GitHub: [tech-marcos-rios/kanban-saas](https://github.com/tech-marcos-rios/kanban-saas)
 
-El proyecto "estrella" del portafolio. Demuestra que podés construir un producto SaaS real con multiusuario y real-time. Tiempo estimado: **2 semanas**. Estado: 🚧 en progreso — backend (auth + modelo de dominio) arrancado, día 1-2 del plan.
+El proyecto "estrella" del portafolio. Demuestra que podés construir un producto SaaS real con multiusuario y real-time. Tiempo estimado: **2 semanas**. Estado: 🚧 en progreso — backend completo (auth, tableros, listas, tarjetas, miembros, real-time, seguridad revisada) y frontend con el golden path funcionando (auth, tableros, drag-and-drop, tiempo real). Quedan: UI de invitaciones, comentarios/labels, deploy.
 
 ## ¿Qué construir?
 
@@ -77,9 +77,10 @@ El frontend escucha y actualiza la cache de Tanstack Query con `queryClient.setQ
 - [x] CRUD de tarjetas (`CardsController`, en `/boards/{boardId}/cards`): crear en una lista, ver, editar (título/descripción/vencimiento), asignar a un miembro del tablero, mover (misma lista o entre listas, con drag-and-drop), eliminar.
 - [x] Invitar/quitar miembros (`BoardMembersController`, en `/boards/{boardId}/members`): invitar por email con rol Editor o Viewer, listar miembros, eliminar. Solo el Owner puede invitar o eliminar; el Owner del tablero no se puede eliminar.
 - [x] Real-time con SignalR (`BoardHub` en `/hubs/board`): el cliente se une al grupo del tablero con `JoinBoard(boardId)` (valida membership) y recibe `ListCreated/Updated/Deleted`, `ListsReordered`, `CardCreated/Updated/Deleted`, `CardMoved` a medida que otros usuarios editan. El JWT se pasa como `?access_token=` en la conexión porque WebSocket no puede mandar headers custom.
-- [x] Revisión de seguridad: se sacó la cuenta admin hardcodeada del código (ahora el seed solo corre en Development y solo si `Seed:AdminEmail`/`Seed:AdminPassword` están configurados) y se agregó validación de contraseña en el registro (mínimo 8 caracteres, letra + número). Quedan pendientes: hashear el refresh token en la base, mitigar el timing attack en login, ocultar Swagger fuera de Development.
+- [x] Revisión de seguridad completa: cuenta admin hardcodeada eliminada, validación de contraseña en el registro, timing attack en login mitigado (hash bcrypt señuelo), refresh tokens hasheados (SHA-256) en la base, Swagger oculto fuera de Development, emails normalizados (trim + lowercase), invitaciones con rate limit, y un miembro eliminado ahora se saca en vivo de su grupo de SignalR en vez de seguir recibiendo eventos hasta reconectar.
+- [x] Frontend Next.js 16 + TypeScript + Tailwind (`web/`): auth (login/register) contra la API real, listar/crear tableros, listas y tarjetas, drag-and-drop de tarjetas entre listas y de listas dentro del tablero (`@dnd-kit`), tiempo real con el cliente de SignalR (`@microsoft/signalr`) sobre TanStack Query. Probado de punta a punta con dos usuarios simultáneos en un tablero (Playwright). Falta: UI para invitar/gestionar miembros (el endpoint del backend ya existe) y comentarios/labels.
 - [ ] Comentarios en tarjetas y etiquetas (labels).
-- [ ] Frontend Next.js con drag-and-drop.
+- [ ] UI para invitar/quitar miembros del tablero (el backend ya lo soporta).
 
 ## Plan paso a paso
 
