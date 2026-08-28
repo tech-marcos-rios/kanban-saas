@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -9,7 +8,7 @@ namespace Kanban.Api.Controllers;
 
 [ApiController]
 [Route("api/v1/auth")]
-public class AuthController : ControllerBase
+public class AuthController : ApiControllerBase
 {
     private readonly AuthService _authService;
 
@@ -18,7 +17,7 @@ public class AuthController : ControllerBase
     [HttpPost("register")]
     [EnableRateLimiting("auth")]
     [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request, CancellationToken ct)
     {
@@ -26,7 +25,7 @@ public class AuthController : ControllerBase
         var result = await _authService.RegisterAsync(request, defaultRoleId, ct);
 
         if (result.IsFailure)
-            return Conflict(new { error = result.Error });
+            return BadRequest(new { error = result.Error });
 
         return CreatedAtAction(nameof(Register), result.Value);
     }
@@ -64,11 +63,7 @@ public class AuthController : ControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> Logout(CancellationToken ct)
     {
-        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)
-            ?? User.FindFirstValue("sub")
-            ?? throw new InvalidOperationException());
-
-        await _authService.LogoutAsync(userId, ct);
+        await _authService.LogoutAsync(CurrentUserId, ct);
         return NoContent();
     }
 }
