@@ -19,6 +19,7 @@ public static class DependencyInjection
 
         services.AddScoped<AuthService>();
         services.AddScoped<BoardService>();
+        services.AddScoped<BoardListService>();
 
         return services;
     }

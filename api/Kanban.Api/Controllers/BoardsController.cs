@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Kanban.Application.DTOs.Boards;
@@ -9,7 +8,7 @@ namespace Kanban.Api.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/v1/boards")]
-public class BoardsController : ControllerBase
+public class BoardsController : ApiControllerBase
 {
     private readonly BoardService _boardService;
 
@@ -22,7 +21,7 @@ public class BoardsController : ControllerBase
     {
         var result = await _boardService.CreateAsync(CurrentUserId, request, ct);
         if (result.IsFailure)
-            return BadRequest(new { error = result.Error });
+            return ToErrorResult(result.Error!, result.IsNotFound, result.IsForbidden);
 
         return CreatedAtAction(nameof(GetById), new { id = result.Value!.Id }, result.Value);
     }
@@ -41,7 +40,9 @@ public class BoardsController : ControllerBase
     public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
     {
         var result = await _boardService.GetByIdAsync(id, CurrentUserId, ct);
-        return result.IsFailure ? NotFound(new { error = result.Error }) : Ok(result.Value);
+        return result.IsFailure
+            ? ToErrorResult(result.Error!, result.IsNotFound, result.IsForbidden)
+            : Ok(result.Value);
     }
 
     [HttpPut("{id:guid}")]
@@ -70,15 +71,4 @@ public class BoardsController : ControllerBase
 
         return NoContent();
     }
-
-    private IActionResult ToErrorResult(string error, bool notFound, bool forbidden)
-    {
-        if (notFound) return NotFound(new { error });
-        if (forbidden) return StatusCode(StatusCodes.Status403Forbidden, new { error });
-        return BadRequest(new { error });
-    }
-
-    private Guid CurrentUserId => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)
-        ?? User.FindFirstValue("sub")
-        ?? throw new InvalidOperationException());
 }

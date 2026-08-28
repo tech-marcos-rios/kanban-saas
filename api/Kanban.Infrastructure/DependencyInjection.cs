@@ -18,6 +18,7 @@ public static class DependencyInjection
         services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<AppDbContext>());
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IBoardRepository, BoardRepository>();
+        services.AddScoped<IBoardListRepository, BoardListRepository>();
 
         services.AddScoped<IJwtService, JwtService>();
 
