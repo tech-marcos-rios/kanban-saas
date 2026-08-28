@@ -20,6 +20,7 @@ public static class DependencyInjection
         services.AddScoped<AuthService>();
         services.AddScoped<BoardService>();
         services.AddScoped<BoardListService>();
+        services.AddScoped<CardService>();
 
         return services;
     }

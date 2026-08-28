@@ -74,7 +74,8 @@ El frontend escucha y actualiza la cache de Tanstack Query con `queryClient.setQ
 - [x] `docker-compose.dev.yml` con Postgres para desarrollo local.
 - [x] CRUD de tableros (`BoardsController`): crear, listar los propios, ver, renombrar, eliminar — con permisos por rol (Owner/Editor/Viewer) vía `BoardMember`.
 - [x] CRUD de listas (`BoardListsController`, anidado en `/boards/{boardId}/lists`): crear, listar, renombrar, reordenar (drag-and-drop de listas), eliminar. Mismo esquema de permisos que tableros (Viewer solo lee).
-- [ ] CRUD de tarjetas dentro de una lista.
+- [x] CRUD de tarjetas (`CardsController`, en `/boards/{boardId}/cards`): crear en una lista, ver, editar (título/descripción/vencimiento), asignar a un miembro del tablero, mover (misma lista o entre listas, con drag-and-drop), eliminar.
+- [ ] Comentarios en tarjetas y etiquetas (labels).
 - [ ] Hubs de SignalR para real-time.
 - [ ] Frontend Next.js con drag-and-drop.
 
