@@ -72,7 +72,8 @@ El frontend escucha y actualiza la cache de Tanstack Query con `queryClient.setQ
 - [x] Migración inicial de EF Core (`InitialCreate`) contra PostgreSQL.
 - [x] Auth: `AuthController` + `AuthService` (register/login/refresh).
 - [x] `docker-compose.dev.yml` con Postgres para desarrollo local.
-- [ ] CRUD de tableros, listas y tarjetas.
+- [x] CRUD de tableros (`BoardsController`): crear, listar los propios, ver, renombrar, eliminar — con permisos por rol (Owner/Editor/Viewer) vía `BoardMember`.
+- [ ] CRUD de listas y tarjetas dentro de un tablero.
 - [ ] Hubs de SignalR para real-time.
 - [ ] Frontend Next.js con drag-and-drop.
 
