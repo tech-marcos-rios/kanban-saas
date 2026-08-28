@@ -2,7 +2,7 @@
 
 > GitHub: [tech-marcos-rios/kanban-saas](https://github.com/tech-marcos-rios/kanban-saas)
 
-El proyecto "estrella" del portafolio. Demuestra que podés construir un producto SaaS real con multiusuario y real-time. Tiempo estimado: **2 semanas**. Estado: 📋 planificado.
+El proyecto "estrella" del portafolio. Demuestra que podés construir un producto SaaS real con multiusuario y real-time. Tiempo estimado: **2 semanas**. Estado: 🚧 en progreso — backend (auth + modelo de dominio) arrancado, día 1-2 del plan.
 
 ## ¿Qué construir?
 
@@ -64,6 +64,17 @@ await _hub.Clients.Group($"board-{boardId}").SendAsync("CardMoved", cardId, newL
 ```
 
 El frontend escucha y actualiza la cache de Tanstack Query con `queryClient.setQueryData`.
+
+## Progreso actual
+
+- [x] Solución .NET 8 con Clean Architecture (Api / Application / Domain / Infrastructure / Tests).
+- [x] Modelo de dominio: `User`, `Board`, `BoardList`, `BoardMember`, `BoardRole`, `Card`, `CardLabel`, `Comment`, `Label`, `Role`.
+- [x] Migración inicial de EF Core (`InitialCreate`) contra PostgreSQL.
+- [x] Auth: `AuthController` + `AuthService` (register/login/refresh).
+- [x] `docker-compose.dev.yml` con Postgres para desarrollo local.
+- [ ] CRUD de tableros, listas y tarjetas.
+- [ ] Hubs de SignalR para real-time.
+- [ ] Frontend Next.js con drag-and-drop.
 
 ## Plan paso a paso
 
