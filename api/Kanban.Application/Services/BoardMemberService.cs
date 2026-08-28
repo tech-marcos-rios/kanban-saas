@@ -10,12 +10,14 @@ public class BoardMemberService
     private readonly IBoardRepository _boards;
     private readonly IUserRepository _users;
     private readonly IUnitOfWork _uow;
+    private readonly IBoardNotifier _notifier;
 
-    public BoardMemberService(IBoardRepository boards, IUserRepository users, IUnitOfWork uow)
+    public BoardMemberService(IBoardRepository boards, IUserRepository users, IUnitOfWork uow, IBoardNotifier notifier)
     {
         _boards = boards;
         _users = users;
         _uow = uow;
+        _notifier = notifier;
     }
 
     public async Task<Result<List<BoardMemberResponse>>> GetMembersAsync(Guid boardId, Guid userId, CancellationToken ct = default)
@@ -40,7 +42,7 @@ public class BoardMemberService
         if (!Enum.TryParse<BoardRole>(request.Role, ignoreCase: true, out var role) || role == BoardRole.Owner)
             return Result.Failure<BoardMemberResponse>("Rol inválido. Usá 'Editor' o 'Viewer'.");
 
-        var invitedUser = await _users.GetByEmailAsync(request.Email, ct);
+        var invitedUser = await _users.GetByEmailAsync(EmailNormalizer.Normalize(request.Email), ct);
         if (invitedUser is null)
             return Result.Failure<BoardMemberResponse>("No existe ninguna cuenta con ese email.");
 
@@ -72,6 +74,7 @@ public class BoardMemberService
 
         _boards.RemoveMember(targetMembership);
         await _uow.SaveChangesAsync(ct);
+        await _notifier.MemberRemovedAsync(boardId, targetUserId, ct);
 
         return Result.Success();
     }

@@ -19,4 +19,7 @@ public interface IBoardNotifier
     Task CardUpdatedAsync(Guid boardId, CardResponse card, CancellationToken ct = default);
     Task CardMovedAsync(Guid boardId, CardResponse card, CancellationToken ct = default);
     Task CardDeletedAsync(Guid boardId, Guid listId, Guid cardId, CancellationToken ct = default);
+
+    /// <summary>Saca a un miembro eliminado de las conexiones en vivo que tenga abiertas del tablero.</summary>
+    Task MemberRemovedAsync(Guid boardId, Guid userId, CancellationToken ct = default);
 }

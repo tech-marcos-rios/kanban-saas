@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Kanban.Application.DTOs.Members;
 using Kanban.Application.Services;
 
@@ -27,10 +28,12 @@ public class BoardMembersController : ApiControllerBase
     }
 
     [HttpPost]
+    [EnableRateLimiting("auth")]
     [ProducesResponseType(typeof(BoardMemberResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public async Task<IActionResult> Invite(Guid boardId, [FromBody] InviteMemberRequest request, CancellationToken ct)
     {
         var result = await _memberService.InviteAsync(boardId, CurrentUserId, request, ct);

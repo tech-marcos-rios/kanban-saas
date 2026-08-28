@@ -39,6 +39,7 @@ try
                   .AllowCredentials()));
 
     builder.Services.AddSignalR();
+    builder.Services.AddSingleton<IBoardConnectionTracker, BoardConnectionTracker>();
     builder.Services.AddScoped<IBoardNotifier, SignalRBoardNotifier>();
 
     builder.Services.AddRateLimiter(options =>
@@ -122,8 +123,11 @@ try
             await DatabaseSeeder.SeedAsync(db, app.Configuration);
     }
 
-    app.UseSwagger();
-    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Kanban API v1"));
+    if (app.Environment.IsDevelopment())
+    {
+        app.UseSwagger();
+        app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Kanban API v1"));
+    }
 
     app.UseSerilogRequestLogging();
     app.UseRateLimiter();

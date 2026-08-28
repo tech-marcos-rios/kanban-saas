@@ -8,8 +8,13 @@ namespace Kanban.Api.Hubs;
 public class SignalRBoardNotifier : IBoardNotifier
 {
     private readonly IHubContext<BoardHub> _hub;
+    private readonly IBoardConnectionTracker _tracker;
 
-    public SignalRBoardNotifier(IHubContext<BoardHub> hub) => _hub = hub;
+    public SignalRBoardNotifier(IHubContext<BoardHub> hub, IBoardConnectionTracker tracker)
+    {
+        _hub = hub;
+        _tracker = tracker;
+    }
 
     public Task ListCreatedAsync(Guid boardId, BoardListResponse list, CancellationToken ct = default) =>
         Group(boardId).SendAsync("ListCreated", list, ct);
@@ -34,6 +39,15 @@ public class SignalRBoardNotifier : IBoardNotifier
 
     public Task CardDeletedAsync(Guid boardId, Guid listId, Guid cardId, CancellationToken ct = default) =>
         Group(boardId).SendAsync("CardDeleted", new { listId, cardId }, ct);
+
+    public async Task MemberRemovedAsync(Guid boardId, Guid userId, CancellationToken ct = default)
+    {
+        foreach (var connectionId in _tracker.GetConnections(boardId, userId))
+        {
+            await _hub.Clients.Client(connectionId).SendAsync("RemovedFromBoard", boardId, ct);
+            await _hub.Groups.RemoveFromGroupAsync(connectionId, BoardHub.GroupName(boardId), ct);
+        }
+    }
 
     private IClientProxy Group(Guid boardId) => _hub.Clients.Group(BoardHub.GroupName(boardId));
 }
