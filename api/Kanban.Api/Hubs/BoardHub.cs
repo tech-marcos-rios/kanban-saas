@@ -13,20 +13,36 @@ namespace Kanban.Api.Hubs;
 public class BoardHub : Hub
 {
     private readonly IBoardRepository _boards;
+    private readonly IBoardConnectionTracker _tracker;
 
-    public BoardHub(IBoardRepository boards) => _boards = boards;
+    public BoardHub(IBoardRepository boards, IBoardConnectionTracker tracker)
+    {
+        _boards = boards;
+        _tracker = tracker;
+    }
 
     public async Task JoinBoard(Guid boardId)
     {
-        var membership = await _boards.GetMembershipAsync(boardId, CurrentUserId());
+        var userId = CurrentUserId();
+        var membership = await _boards.GetMembershipAsync(boardId, userId);
         if (membership is null)
             throw new HubException("No tenés acceso a este tablero.");
 
         await Groups.AddToGroupAsync(Context.ConnectionId, GroupName(boardId));
+        _tracker.Track(boardId, userId, Context.ConnectionId);
     }
 
-    public Task LeaveBoard(Guid boardId) =>
-        Groups.RemoveFromGroupAsync(Context.ConnectionId, GroupName(boardId));
+    public async Task LeaveBoard(Guid boardId)
+    {
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, GroupName(boardId));
+        _tracker.Untrack(boardId, CurrentUserId(), Context.ConnectionId);
+    }
+
+    public override Task OnDisconnectedAsync(Exception? exception)
+    {
+        _tracker.UntrackConnection(Context.ConnectionId);
+        return base.OnDisconnectedAsync(exception);
+    }
 
     public static string GroupName(Guid boardId) => $"board-{boardId}";
 

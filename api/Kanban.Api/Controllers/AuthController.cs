@@ -21,8 +21,7 @@ public class AuthController : ApiControllerBase
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request, CancellationToken ct)
     {
-        var defaultRoleId = Kanban.Infrastructure.Persistence.Configurations.RoleConfiguration.UserRoleId;
-        var result = await _authService.RegisterAsync(request, defaultRoleId, ct);
+        var result = await _authService.RegisterAsync(request, ct);
 
         if (result.IsFailure)
             return BadRequest(new { error = result.Error });

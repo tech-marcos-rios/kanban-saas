@@ -10,6 +10,10 @@ public class AuthService
     private const int MinPasswordLength = 8;
     private const int MaxPasswordLength = 100;
 
+    // Hash bcrypt "señuelo" contra el que verificar cuando el usuario no existe, para que
+    // el tiempo de respuesta del login no delate si un email está o no registrado.
+    private static readonly string DummyPasswordHash = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString());
+
     private readonly IUserRepository _users;
     private readonly IUnitOfWork _uow;
     private readonly IJwtService _jwt;
@@ -21,20 +25,21 @@ public class AuthService
         _jwt = jwt;
     }
 
-    public async Task<Result<AuthResponse>> RegisterAsync(RegisterRequest request, Guid defaultRoleId, CancellationToken ct = default)
+    public async Task<Result<AuthResponse>> RegisterAsync(RegisterRequest request, CancellationToken ct = default)
     {
         var passwordResult = ValidatePassword(request.Password);
         if (passwordResult.IsFailure)
             return Result.Failure<AuthResponse>(passwordResult.Error!);
 
-        if (await _users.ExistsByEmailAsync(request.Email, ct))
+        var email = EmailNormalizer.Normalize(request.Email);
+        if (await _users.ExistsByEmailAsync(email, ct))
             return Result.Failure<AuthResponse>("Ya existe una cuenta con ese email.");
 
         var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
-        var user = User.Create(request.Name, request.Email, passwordHash, defaultRoleId);
+        var user = User.Create(request.Name, email, passwordHash, Role.WellKnownIds.UserRoleId);
 
         var refreshToken = _jwt.GenerateRefreshToken();
-        user.SetRefreshToken(refreshToken, _jwt.RefreshTokenExpiresAt());
+        user.SetRefreshToken(TokenHasher.Hash(refreshToken), _jwt.RefreshTokenExpiresAt());
 
         await _users.AddAsync(user, ct);
         await _uow.SaveChangesAsync(ct);
@@ -47,14 +52,17 @@ public class AuthService
 
     public async Task<Result<AuthResponse>> LoginAsync(LoginRequest request, CancellationToken ct = default)
     {
-        var user = await _users.GetByEmailAsync(request.Email, ct);
+        var user = await _users.GetByEmailAsync(EmailNormalizer.Normalize(request.Email), ct);
 
-        if (user is null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+        // Se verifica siempre, incluso con usuario null (contra un hash señuelo), para que
+        // el tiempo de respuesta no varíe según si el email existe o no.
+        var isPasswordValid = BCrypt.Net.BCrypt.Verify(request.Password, user?.PasswordHash ?? DummyPasswordHash);
+        if (user is null || !isPasswordValid)
             return Result.Failure<AuthResponse>("Credenciales incorrectas.");
 
         var accessToken = _jwt.GenerateAccessToken(user);
         var refreshToken = _jwt.GenerateRefreshToken();
-        user.SetRefreshToken(refreshToken, _jwt.RefreshTokenExpiresAt());
+        user.SetRefreshToken(TokenHasher.Hash(refreshToken), _jwt.RefreshTokenExpiresAt());
 
         _users.Update(user);
         await _uow.SaveChangesAsync(ct);
@@ -64,14 +72,15 @@ public class AuthService
 
     public async Task<Result<AuthResponse>> RefreshAsync(RefreshTokenRequest request, CancellationToken ct = default)
     {
-        var user = await _users.GetByRefreshTokenAsync(request.RefreshToken, ct);
+        var hashedToken = TokenHasher.Hash(request.RefreshToken);
+        var user = await _users.GetByRefreshTokenAsync(hashedToken, ct);
 
-        if (user is null || !user.IsRefreshTokenValid(request.RefreshToken))
+        if (user is null || !user.IsRefreshTokenValid(hashedToken))
             return Result.Failure<AuthResponse>("Refresh token inválido o expirado.");
 
         var accessToken = _jwt.GenerateAccessToken(user);
         var newRefreshToken = _jwt.GenerateRefreshToken();
-        user.SetRefreshToken(newRefreshToken, _jwt.RefreshTokenExpiresAt());
+        user.SetRefreshToken(TokenHasher.Hash(newRefreshToken), _jwt.RefreshTokenExpiresAt());
 
         _users.Update(user);
         await _uow.SaveChangesAsync(ct);

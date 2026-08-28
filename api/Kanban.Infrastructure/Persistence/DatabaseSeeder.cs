@@ -6,8 +6,6 @@ namespace Kanban.Infrastructure.Persistence;
 
 public static class DatabaseSeeder
 {
-    private static readonly Guid AdminRoleId = new("00000000-0000-0000-0000-000000000001");
-
     /// <summary>
     /// Crea un admin solo si Seed:AdminEmail/Seed:AdminPassword están configurados
     /// (ver appsettings.Development.json, gitignoreado). Sin esos valores no hace nada —
@@ -23,7 +21,7 @@ public static class DatabaseSeeder
         if (await db.Users.AnyAsync(u => u.Email == email)) return;
 
         var hash = BCrypt.Net.BCrypt.HashPassword(password);
-        var admin = User.Create("Admin", email, hash, AdminRoleId);
+        var admin = User.Create("Admin", email, hash, Role.WellKnownIds.AdminRoleId);
         db.Users.Add(admin);
         await db.SaveChangesAsync();
     }
