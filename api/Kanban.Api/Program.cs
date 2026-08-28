@@ -117,7 +117,9 @@ try
     {
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await db.Database.MigrateAsync();
-        await DatabaseSeeder.SeedAsync(db);
+
+        if (app.Environment.IsDevelopment())
+            await DatabaseSeeder.SeedAsync(db, app.Configuration);
     }
 
     app.UseSwagger();

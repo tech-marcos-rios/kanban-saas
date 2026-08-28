@@ -77,6 +77,7 @@ El frontend escucha y actualiza la cache de Tanstack Query con `queryClient.setQ
 - [x] CRUD de tarjetas (`CardsController`, en `/boards/{boardId}/cards`): crear en una lista, ver, editar (título/descripción/vencimiento), asignar a un miembro del tablero, mover (misma lista o entre listas, con drag-and-drop), eliminar.
 - [x] Invitar/quitar miembros (`BoardMembersController`, en `/boards/{boardId}/members`): invitar por email con rol Editor o Viewer, listar miembros, eliminar. Solo el Owner puede invitar o eliminar; el Owner del tablero no se puede eliminar.
 - [x] Real-time con SignalR (`BoardHub` en `/hubs/board`): el cliente se une al grupo del tablero con `JoinBoard(boardId)` (valida membership) y recibe `ListCreated/Updated/Deleted`, `ListsReordered`, `CardCreated/Updated/Deleted`, `CardMoved` a medida que otros usuarios editan. El JWT se pasa como `?access_token=` en la conexión porque WebSocket no puede mandar headers custom.
+- [x] Revisión de seguridad: se sacó la cuenta admin hardcodeada del código (ahora el seed solo corre en Development y solo si `Seed:AdminEmail`/`Seed:AdminPassword` están configurados) y se agregó validación de contraseña en el registro (mínimo 8 caracteres, letra + número). Quedan pendientes: hashear el refresh token en la base, mitigar el timing attack en login, ocultar Swagger fuera de Development.
 - [ ] Comentarios en tarjetas y etiquetas (labels).
 - [ ] Frontend Next.js con drag-and-drop.
 

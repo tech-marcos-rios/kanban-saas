@@ -7,6 +7,9 @@ namespace Kanban.Application.Services;
 
 public class AuthService
 {
+    private const int MinPasswordLength = 8;
+    private const int MaxPasswordLength = 100;
+
     private readonly IUserRepository _users;
     private readonly IUnitOfWork _uow;
     private readonly IJwtService _jwt;
@@ -20,6 +23,10 @@ public class AuthService
 
     public async Task<Result<AuthResponse>> RegisterAsync(RegisterRequest request, Guid defaultRoleId, CancellationToken ct = default)
     {
+        var passwordResult = ValidatePassword(request.Password);
+        if (passwordResult.IsFailure)
+            return Result.Failure<AuthResponse>(passwordResult.Error!);
+
         if (await _users.ExistsByEmailAsync(request.Email, ct))
             return Result.Failure<AuthResponse>("Ya existe una cuenta con ese email.");
 
@@ -86,4 +93,16 @@ public class AuthService
 
     private AuthResponse BuildResponse(User user, string accessToken, string refreshToken) =>
         new(accessToken, refreshToken, _jwt.AccessTokenExpiresAt(), user.Name, user.Email, user.Role.Name);
+
+    private static Result<string> ValidatePassword(string password)
+    {
+        if (string.IsNullOrEmpty(password) || password.Length < MinPasswordLength)
+            return Result.Failure<string>($"La contraseña debe tener al menos {MinPasswordLength} caracteres.");
+        if (password.Length > MaxPasswordLength)
+            return Result.Failure<string>($"La contraseña no puede superar los {MaxPasswordLength} caracteres.");
+        if (!password.Any(char.IsLetter) || !password.Any(char.IsDigit))
+            return Result.Failure<string>("La contraseña debe incluir al menos una letra y un número.");
+
+        return Result.Success(password);
+    }
 }
