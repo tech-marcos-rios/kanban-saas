@@ -21,6 +21,7 @@ public static class DependencyInjection
         services.AddScoped<BoardService>();
         services.AddScoped<BoardListService>();
         services.AddScoped<CardService>();
+        services.AddScoped<BoardMemberService>();
 
         return services;
     }

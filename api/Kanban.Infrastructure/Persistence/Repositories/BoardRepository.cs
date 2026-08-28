@@ -22,6 +22,13 @@ public class BoardRepository : IBoardRepository
     public Task<BoardMember?> GetMembershipAsync(Guid boardId, Guid userId, CancellationToken ct = default) =>
         _context.BoardMembers.FirstOrDefaultAsync(m => m.BoardId == boardId && m.UserId == userId, ct);
 
+    public Task<List<BoardMember>> GetMembersAsync(Guid boardId, CancellationToken ct = default) =>
+        _context.BoardMembers
+            .Where(m => m.BoardId == boardId)
+            .Include(m => m.User)
+            .OrderBy(m => m.CreatedAt)
+            .ToListAsync(ct);
+
     public async Task AddAsync(Board board, CancellationToken ct = default) =>
         await _context.Boards.AddAsync(board, ct);
 
@@ -31,4 +38,6 @@ public class BoardRepository : IBoardRepository
     public void Update(Board board) => _context.Boards.Update(board);
 
     public void Remove(Board board) => _context.Boards.Remove(board);
+
+    public void RemoveMember(BoardMember member) => _context.BoardMembers.Remove(member);
 }
