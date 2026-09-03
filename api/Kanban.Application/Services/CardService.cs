@@ -8,6 +8,7 @@ namespace Kanban.Application.Services;
 public class CardService
 {
     private const int MaxTitleLength = 200;
+    private const int MaxDescriptionLength = 10_000;
 
     private readonly ICardRepository _cards;
     private readonly IBoardListRepository _lists;
@@ -65,6 +66,10 @@ public class CardService
         if (titleResult.IsFailure)
             return Result.Failure<CardResponse>(titleResult.Error!);
 
+        var descriptionResult = ValidateDescription(request.Description);
+        if (descriptionResult.IsFailure)
+            return Result.Failure<CardResponse>(descriptionResult.Error!);
+
         var existing = await _cards.GetByListIdAsync(listId, ct);
         var nextPosition = existing.Count == 0 ? 0 : existing.Max(c => c.Position) + 1;
 
@@ -89,6 +94,10 @@ public class CardService
         var titleResult = ValidateTitle(request.Title);
         if (titleResult.IsFailure)
             return Result.Failure<CardResponse>(titleResult.Error!);
+
+        var descriptionResult = ValidateDescription(request.Description);
+        if (descriptionResult.IsFailure)
+            return Result.Failure<CardResponse>(descriptionResult.Error!);
 
         var card = await _cards.GetByIdAsync(cardId, ct);
         if (card is null || card.List.BoardId != boardId)
@@ -228,6 +237,13 @@ public class CardService
         if (trimmed.Length > MaxTitleLength)
             return Result.Failure<string>($"El título no puede superar los {MaxTitleLength} caracteres.");
         return Result.Success(trimmed);
+    }
+
+    private static Result ValidateDescription(string? description)
+    {
+        if (description is { Length: > MaxDescriptionLength })
+            return Result.Failure($"La descripción no puede superar los {MaxDescriptionLength} caracteres.");
+        return Result.Success();
     }
 
     private static CardResponse ToResponse(Card card) => new(
