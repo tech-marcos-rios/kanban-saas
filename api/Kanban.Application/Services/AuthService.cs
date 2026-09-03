@@ -31,6 +31,9 @@ public class AuthService
         if (passwordResult.IsFailure)
             return Result.Failure<AuthResponse>(passwordResult.Error!);
 
+        if (!EmailNormalizer.IsValidFormat(request.Email))
+            return Result.Failure<AuthResponse>("El email no tiene un formato válido.");
+
         var email = EmailNormalizer.Normalize(request.Email);
         if (await _users.ExistsByEmailAsync(email, ct))
             return Result.Failure<AuthResponse>("Ya existe una cuenta con ese email.");
