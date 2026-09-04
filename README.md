@@ -82,6 +82,14 @@ El frontend escucha y actualiza la cache de Tanstack Query con `queryClient.setQ
 - [ ] Comentarios en tarjetas y etiquetas (labels).
 - [ ] UI para invitar/quitar miembros del tablero (el backend ya lo soporta).
 
+## Git Flow
+
+- `master` — producción. Protegida: requiere PR + CI en verde (`api` y `web`), sin push directo ni force-push.
+- `develop` — integración, rama default del repo. Misma protección que `master`.
+- `feature/*` / `fix/*` / `chore/*` — ramas de trabajo, se mergean a `develop` vía PR.
+- `release/*` / `hotfix/*` — promueven `develop` a `master`.
+- Conventional Commits obligatorios.
+
 ## Plan paso a paso
 
 ### Semana 1
