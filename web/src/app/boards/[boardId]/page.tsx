@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Users } from "lucide-react";
 import {
   DndContext,
   DragOverlay,
@@ -25,6 +25,7 @@ import { useBoardRealtime } from "@/hooks/use-board-realtime";
 import { SortableListColumn } from "@/components/board/SortableListColumn";
 import { CardItem } from "@/components/board/CardItem";
 import { CreateListForm } from "@/components/board/CreateListForm";
+import { MembersModal } from "@/components/board/MembersModal";
 import type { BoardListResponse, CardResponse } from "@/lib/types";
 
 export default function BoardDetailPage() {
@@ -46,6 +47,7 @@ export default function BoardDetailPage() {
   const isDraggingRef = useRef(false);
   const [activeCard, setActiveCard] = useState<CardResponse | null>(null);
   const [activeList, setActiveList] = useState<BoardListResponse | null>(null);
+  const [isMembersOpen, setIsMembersOpen] = useState(false);
 
   useEffect(() => {
     if (isDraggingRef.current) return;
@@ -146,16 +148,32 @@ export default function BoardDetailPage() {
 
   return (
     <div className="flex h-[calc(100vh-57px)] flex-col">
-      <div className="border-b border-gray-200 bg-white px-4 py-3">
-        <Link
-          href="/boards"
-          className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700"
+      <div className="flex items-start justify-between border-b border-gray-200 bg-white px-4 py-3">
+        <div>
+          <Link
+            href="/boards"
+            className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Mis tableros
+          </Link>
+          <h1 className="mt-1 text-lg font-bold text-gray-900">{board?.name ?? "..."}</h1>
+        </div>
+        <button
+          onClick={() => setIsMembersOpen(true)}
+          className="flex items-center gap-1.5 rounded-md border border-gray-300 px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
         >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Mis tableros
-        </Link>
-        <h1 className="mt-1 text-lg font-bold text-gray-900">{board?.name ?? "..."}</h1>
+          <Users className="h-3.5 w-3.5" />
+          Miembros
+        </button>
       </div>
+
+      <MembersModal
+        boardId={boardId}
+        isOpen={isMembersOpen}
+        onClose={() => setIsMembersOpen(false)}
+        currentRole={board?.role}
+      />
 
       <div className="flex-1 overflow-x-auto px-4 py-4">
         {isLoading && <p className="text-sm text-gray-500">Cargando tablero...</p>}
