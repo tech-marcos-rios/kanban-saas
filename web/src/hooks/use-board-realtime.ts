@@ -30,6 +30,10 @@ export function useBoardRealtime(boardId: string) {
     connection.on("CardMoved", invalidateCards);
     connection.on("CardDeleted", invalidateCards);
 
+    connection.on("MembersChanged", () =>
+      queryClient.invalidateQueries({ queryKey: ["members", boardId] }),
+    );
+
     connection.on("RemovedFromBoard", () => {
       queryClient.invalidateQueries({ queryKey: ["boards"] });
       router.replace("/boards?notice=removed");

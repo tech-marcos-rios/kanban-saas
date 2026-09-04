@@ -53,6 +53,7 @@ public class BoardMemberService
         var member = BoardMember.Create(boardId, invitedUser.Id, role);
         await _boards.AddMemberAsync(member, ct);
         await _uow.SaveChangesAsync(ct);
+        await _notifier.MembersChangedAsync(boardId, ct);
 
         return Result.Success(ToResponse(member, invitedUser));
     }
@@ -75,6 +76,7 @@ public class BoardMemberService
         _boards.RemoveMember(targetMembership);
         await _uow.SaveChangesAsync(ct);
         await _notifier.MemberRemovedAsync(boardId, targetUserId, ct);
+        await _notifier.MembersChangedAsync(boardId, ct);
 
         return Result.Success();
     }

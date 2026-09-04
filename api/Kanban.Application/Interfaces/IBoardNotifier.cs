@@ -22,4 +22,7 @@ public interface IBoardNotifier
 
     /// <summary>Saca a un miembro eliminado de las conexiones en vivo que tenga abiertas del tablero.</summary>
     Task MemberRemovedAsync(Guid boardId, Guid userId, CancellationToken ct = default);
+
+    /// <summary>Avisa a todos los miembros conectados que la lista de miembros cambió (invitación o remoción).</summary>
+    Task MembersChangedAsync(Guid boardId, CancellationToken ct = default);
 }

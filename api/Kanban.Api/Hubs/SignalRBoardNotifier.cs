@@ -49,5 +49,8 @@ public class SignalRBoardNotifier : IBoardNotifier
         }
     }
 
+    public Task MembersChangedAsync(Guid boardId, CancellationToken ct = default) =>
+        Group(boardId).SendAsync("MembersChanged", ct);
+
     private IClientProxy Group(Guid boardId) => _hub.Clients.Group(BoardHub.GroupName(boardId));
 }
